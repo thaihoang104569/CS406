@@ -1,0 +1,274 @@
+{
+  "args": {
+    "sketchy_root": "/kaggle/input/datasets/hongonthi/sketchyextended/sketchy",
+    "flickr_root": "/kaggle/input/datasets/hongonthi/flickr15k/Flickr15K",
+    "out_dir": "/kaggle/working/data_prep",
+    "n_val": 10,
+    "seed": 42,
+    "sample_per_group": 500,
+    "workers": 8,
+    "no_figures": false
+  },
+  "sketchy": {
+    "files": 148483,
+    "classes": {
+      "train": 94,
+      "val": 10,
+      "test": 21
+    },
+    "items": {
+      "test/photo": 10453,
+      "test/sketch": 12694,
+      "train/photo": 56549,
+      "train/sketch": 56606,
+      "val/photo": 6000,
+      "val/sketch": 6181
+    },
+    "val_classes": [
+      "ape",
+      "bicycle",
+      "blimp",
+      "camel",
+      "crocodilian",
+      "dog",
+      "fan",
+      "sheep",
+      "spoon",
+      "teddy_bear"
+    ],
+    "test_classes": [
+      "bat",
+      "cabin",
+      "cow",
+      "dolphin",
+      "door",
+      "giraffe",
+      "helicopter",
+      "mouse",
+      "pear",
+      "raccoon",
+      "rhinoceros",
+      "saw",
+      "scissors",
+      "seagull",
+      "skyscraper",
+      "songbird",
+      "sword",
+      "tree",
+      "wheelchair",
+      "windmill",
+      "window"
+    ],
+    "original_photos_with_sketches": 12500,
+    "extended_photos": 60503,
+    "sketches_per_photo": {
+      "mean": 6.038,
+      "min": 5,
+      "max": 18
+    },
+    "sketches_without_photo": [
+      "train/sketch/camel/n02437136_5405-1.jpg",
+      "train/sketch/camel/n02437136_5405-2.jpg",
+      "train/sketch/camel/n02437136_5405-3.jpg",
+      "train/sketch/camel/n02437136_5405-4.jpg",
+      "train/sketch/camel/n02437136_5405-5.jpg",
+      "train/sketch/camel/n02437136_5405-6.jpg"
+    ],
+    "sketch_photo_pairs_across_splits": 0,
+    "per_class": {
+      "photo_min": 161,
+      "photo_max": 750,
+      "sketch_min": 518,
+      "sketch_max": 746
+    },
+    "extensions": {
+      "photo.jpg": 73002,
+      "sketch.jpg": 75481
+    }
+  },
+  "flickr15k": {
+    "files": 14990,
+    "photos": 14660,
+    "sketches": 330,
+    "image_folders": 60,
+    "classes": 33,
+    "sketch_users": 10,
+    "list_images_lines": 14501,
+    "list_lines_without_file": 0,
+    "distractor_photos": 159,
+    "distractor_folders": {
+      "others": 78,
+      "Reichstag": 70,
+      "mushroom": 4,
+      "sailling": 3,
+      "butterfly": 1,
+      "bird": 1,
+      "Westminster_Abbey": 1,
+      "eiffel_tower": 1
+    }
+  },
+  "checks": {
+    "verify_splits_passed": true,
+    "train_val_shared_classes": [],
+    "sketch_photo_pairs_across_splits": 0
+  },
+  "image_stats": {
+    "flickr15k": {
+      "test/photo": {
+        "n_sampled": 500,
+        "unreadable": [],
+        "width": [
+          360,
+          1024,
+          1280
+        ],
+        "height": [
+          382,
+          768,
+          1280
+        ],
+        "modes": {
+          "RGB": 500
+        },
+        "mean_gray": 111.72,
+        "ink_ratio": 0.8573
+      },
+      "test/sketch": {
+        "n_sampled": 330,
+        "unreadable": [],
+        "width": [
+          400,
+          400,
+          400
+        ],
+        "height": [
+          400,
+          400,
+          400
+        ],
+        "modes": {
+          "RGB": 330
+        },
+        "mean_gray": 252.97,
+        "ink_ratio": 0.0079
+      }
+    },
+    "sketchy": {
+      "test/photo": {
+        "n_sampled": 500,
+        "unreadable": [],
+        "width": [
+          100,
+          263,
+          1600
+        ],
+        "height": [
+          67,
+          256,
+          1200
+        ],
+        "modes": {
+          "RGB": 500
+        },
+        "mean_gray": 128.11,
+        "ink_ratio": 0.8042
+      },
+      "test/sketch": {
+        "n_sampled": 500,
+        "unreadable": [],
+        "width": [
+          256,
+          256,
+          256
+        ],
+        "height": [
+          256,
+          256,
+          256
+        ],
+        "modes": {
+          "RGB": 500
+        },
+        "mean_gray": 245.03,
+        "ink_ratio": 0.0407
+      },
+      "train/photo": {
+        "n_sampled": 500,
+        "unreadable": [],
+        "width": [
+          48,
+          500,
+          2472
+        ],
+        "height": [
+          48,
+          375,
+          3296
+        ],
+        "modes": {
+          "RGB": 500
+        },
+        "mean_gray": 114.29,
+        "ink_ratio": 0.8737
+      },
+      "train/sketch": {
+        "n_sampled": 500,
+        "unreadable": [],
+        "width": [
+          256,
+          256,
+          256
+        ],
+        "height": [
+          256,
+          256,
+          256
+        ],
+        "modes": {
+          "RGB": 500
+        },
+        "mean_gray": 244.7,
+        "ink_ratio": 0.042
+      },
+      "val/photo": {
+        "n_sampled": 500,
+        "unreadable": [],
+        "width": [
+          50,
+          500,
+          2271
+        ],
+        "height": [
+          45,
+          370,
+          1703
+        ],
+        "modes": {
+          "RGB": 500
+        },
+        "mean_gray": 119.1,
+        "ink_ratio": 0.8676
+      },
+      "val/sketch": {
+        "n_sampled": 500,
+        "unreadable": [],
+        "width": [
+          256,
+          256,
+          256
+        ],
+        "height": [
+          256,
+          256,
+          256
+        ],
+        "modes": {
+          "RGB": 500
+        },
+        "mean_gray": 244.23,
+        "ink_ratio": 0.0439
+      }
+    }
+  },
+  "runtime_sec": 74.8
+}
