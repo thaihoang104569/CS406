@@ -26,7 +26,11 @@ class SBIRDataset(Dataset):
         split: str = "train",
         item_type: Optional[str] = None,
         transform = None,
+        data_root: Optional[str] = None,
     ):
+        """data_root: folder that `filepath` is relative to (scripts/make_splits.py writes
+        relative paths, e.g. the Kaggle input dir of the dataset). None = paths used as-is."""
+        self.data_root = Path(data_root) if data_root else None
         self.df = pd.read_csv(split_csv)
         self.df = self.df[self.df["split"] == split]
         if item_type is not None:
@@ -44,7 +48,7 @@ class SBIRDataset(Dataset):
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int, str]:
         row = self.df.iloc[idx]
-        img_path = row["filepath"]
+        img_path = self.data_root / row["filepath"] if self.data_root else row["filepath"]
         category = row["category"]
         label = self.class_to_idx[category]
 

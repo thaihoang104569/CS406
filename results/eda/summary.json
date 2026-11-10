@@ -1,0 +1,201 @@
+{
+  "sketchy_root": "/kaggle/input/datasets/hongonthi/sketchyextended/sketchy",
+  "flickr_root": "/kaggle/input/datasets/hongonthi/flickr15k/Flickr15K",
+  "sketchy": {
+    "files": 148483,
+    "per_split_modality": {
+      "train/photo": 62549,
+      "train/sketch": 62787,
+      "val/photo": 10453,
+      "val/sketch": 12694
+    },
+    "classes_per_split": {
+      "train": 104,
+      "val": 21
+    },
+    "n_classes_total": 125,
+    "pairing": {
+      "train": {
+        "cùng split": 62781,
+        "photo không tồn tại": 6
+      },
+      "val": {
+        "cùng split": 12694,
+        "photo không tồn tại": 0
+      }
+    },
+    "sketches_per_photo_mean": 6.03848,
+    "photo_ids_in_multiple_splits": 600
+  },
+  "flickr15k": {
+    "files": 14990,
+    "n_photos": 14660,
+    "n_sketches": 330,
+    "n_photo_classes": 60,
+    "sketch_groups": [
+      "1",
+      "10",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "list_files": {
+      "list_images.txt": {
+        "n_lines": 14501,
+        "head": [
+          "1 fire_balloon/110181.jpg",
+          "1 fire_balloon/129097.jpg",
+          "1 fire_balloon/13794.jpg",
+          "1 fire_balloon/138163.jpg",
+          "1 fire_balloon/142476.jpg",
+          "1 fire_balloon/142850.jpg",
+          "1 fire_balloon/142984.jpg",
+          "1 fire_balloon/143028.jpg"
+        ]
+      },
+      "list_sketches.txt": {
+        "n_lines": 330,
+        "head": [
+          "1 1/1.png",
+          "2 1/2.png",
+          "3 1/3.png",
+          "4 1/4.png",
+          "5 1/5.png",
+          "6 1/6.png",
+          "7 1/7.png",
+          "8 1/8.png"
+        ]
+      },
+      "sketches/lst_sketches": {
+        "n_lines": 330,
+        "head": [
+          "1 1/1.png",
+          "2 1/2.png",
+          "3 1/3.png",
+          "4 1/4.png",
+          "5 1/5.png",
+          "6 1/6.png",
+          "7 1/7.png",
+          "8 1/8.png"
+        ]
+      }
+    },
+    "sketches_with_class": 0
+  },
+  "pixel_stats": [
+    {
+      "dataset": "flickr15k",
+      "split": "all",
+      "modality": "photo",
+      "n": 1500,
+      "w_min": 320,
+      "w_med": 987.0,
+      "w_max": 2048,
+      "h_min": 240,
+      "h_med": 768.0,
+      "h_max": 1536,
+      "modes": {
+        "RGB": 1500
+      },
+      "dark_ratio": 0.575,
+      "mean_gray": 114.042,
+      "kb_mean": 137.253
+    },
+    {
+      "dataset": "flickr15k",
+      "split": "all",
+      "modality": "sketch",
+      "n": 330,
+      "w_min": 400,
+      "w_med": 400.0,
+      "w_max": 400,
+      "h_min": 400,
+      "h_med": 400.0,
+      "h_max": 400,
+      "modes": {
+        "RGB": 330
+      },
+      "dark_ratio": 0.0,
+      "mean_gray": 252.797,
+      "kb_mean": 437.461
+    },
+    {
+      "dataset": "sketchy",
+      "split": "train",
+      "modality": "photo",
+      "n": 1500,
+      "w_min": 90,
+      "w_med": 500.0,
+      "w_max": 3008,
+      "h_min": 58,
+      "h_med": 375.0,
+      "h_max": 2560,
+      "modes": {
+        "RGB": 1500
+      },
+      "dark_ratio": 0.58,
+      "mean_gray": 114.841,
+      "kb_mean": 35.227
+    },
+    {
+      "dataset": "sketchy",
+      "split": "train",
+      "modality": "sketch",
+      "n": 1500,
+      "w_min": 256,
+      "w_med": 256.0,
+      "w_max": 256,
+      "h_min": 256,
+      "h_med": 256.0,
+      "h_max": 256,
+      "modes": {
+        "RGB": 1500
+      },
+      "dark_ratio": 0.041,
+      "mean_gray": 244.935,
+      "kb_mean": 5.708
+    },
+    {
+      "dataset": "sketchy",
+      "split": "val",
+      "modality": "photo",
+      "n": 1500,
+      "w_min": 85,
+      "w_med": 270.5,
+      "w_max": 2048,
+      "h_min": 75,
+      "h_med": 256.0,
+      "h_max": 1536,
+      "modes": {
+        "RGB": 1500
+      },
+      "dark_ratio": 0.499,
+      "mean_gray": 130.5,
+      "kb_mean": 17.862
+    },
+    {
+      "dataset": "sketchy",
+      "split": "val",
+      "modality": "sketch",
+      "n": 1500,
+      "w_min": 256,
+      "w_med": 256.0,
+      "w_max": 256,
+      "h_min": 256,
+      "h_med": 256.0,
+      "h_max": 256,
+      "modes": {
+        "RGB": 1500
+      },
+      "dark_ratio": 0.043,
+      "mean_gray": 244.48,
+      "kb_mean": 5.672
+    }
+  ],
+  "unreadable_files_in_sample": []
+}

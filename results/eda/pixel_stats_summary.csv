@@ -1,0 +1,7 @@
+dataset,split,modality,n,w_min,w_med,w_max,h_min,h_med,h_max,modes,dark_ratio,mean_gray,kb_mean
+flickr15k,all,photo,1500,320,987.0,2048,240,768.0,1536,{'RGB': 1500},0.575,114.042,137.253
+flickr15k,all,sketch,330,400,400.0,400,400,400.0,400,{'RGB': 330},0.0,252.797,437.461
+sketchy,train,photo,1500,90,500.0,3008,58,375.0,2560,{'RGB': 1500},0.58,114.841,35.227
+sketchy,train,sketch,1500,256,256.0,256,256,256.0,256,{'RGB': 1500},0.041,244.935,5.708
+sketchy,val,photo,1500,85,270.5,2048,75,256.0,1536,{'RGB': 1500},0.499,130.5,17.862
+sketchy,val,sketch,1500,256,256.0,256,256,256.0,256,{'RGB': 1500},0.043,244.48,5.672
