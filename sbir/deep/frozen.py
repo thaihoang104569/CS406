@@ -13,6 +13,8 @@ class FrozenCLIPExtractor:
         self.device = device
         try:
             import open_clip
+            # open_clip names use '-' ("ViT-B-32"), OpenAI style uses '/' ("ViT-B/32").
+            model_name = model_name.replace("/", "-")
             self.model, _, self.preprocess = open_clip.create_model_and_transforms(
                 model_name, pretrained=pretrained
             )
