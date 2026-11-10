@@ -1,0 +1,40 @@
+# Configuration for Deep Learning Experiments (E2 Frozen CLIP, E3 Triplet only, E4 Full Prompt Learning)
+experiment: "E4_CLIP_PromptLearning"
+seed: 42
+
+backbone:
+  name: "ViT-B/32"
+  pretrained: "openai"
+  freeze_backbone: true
+
+model:
+  prompt_tokens_per_layer: 3 # M in {1, 3, 5}
+  prompt_dim: 768
+  deep_prompting: true
+  embedding_dim: 512
+
+dataset:
+  name: "sketchy"
+  data_dir: "data/raw/sketchy"
+  split_file: "data/splits/sketchy_zero_shot_splits.csv"
+  img_size: [224, 224]
+
+training:
+  batch_size: 64
+  num_workers: 4
+  lr: 0.0003
+  min_lr: 0.00001
+  weight_decay: 0.01
+  epochs: 40
+  warmup_epochs: 3
+  amp: true  # Automatic Mixed Precision (FP16)
+  
+loss:
+  triplet_margin: 0.3
+  classification_temperature: 0.01
+  lambda_cls: 1.0  # 0.0 for E3, > 0 for E4 (e.g. 0.5, 1.0, 2.0)
+
+evaluation:
+  eval_frequency: 1 # evaluate on validation set every epoch
+  top_k: 200
+  metrics: ["mAP@200", "P@10", "P@100", "P@200"]

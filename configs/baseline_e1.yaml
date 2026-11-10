@@ -1,0 +1,43 @@
+# Configuration for Traditional Baseline (E1: Canny + Dense HOG + BoVW)
+experiment: "E1_Baseline_Traditional"
+seed: 42
+
+dataset:
+  name: "sketchy"  # "flickr15k" or "sketchy"
+  data_dir: "data/raw/sketchy"
+  split_file: "data/splits/sketchy_zero_shot_splits.csv"
+  img_size: [256, 256]
+
+preprocessing:
+  photo:
+    bilateral_d: 9
+    bilateral_sigma_color: 75
+    bilateral_sigma_space: 75
+    auto_canny_sigma: 0.33
+    min_component_area: 20
+    bbox_pad_ratio: 0.10
+  sketch:
+    otsu_thresh: true
+    skeletonize: true  # Zhang-Suen
+    bbox_pad_ratio: 0.10
+    dilate_kernel_size: 3
+
+features:
+  dense_hog:
+    patch_size: 32
+    step_size: 8
+    orientations: 9
+    pixels_per_cell: [8, 8]
+    cells_per_block: [2, 2]
+    min_edge_ratio: 0.02
+
+bovw:
+  codebook_size: 1000
+  sample_descriptors_count: 300000
+  spatial_pyramid_levels: [1, 2] # 1x1 + 2x2 = 5 cells -> 5000-D feature
+  power_normalization: true
+  l2_normalization: true
+
+evaluation:
+  top_k: 200
+  metrics: ["mAP", "mAP@200", "P@10", "P@100", "P@200"]
