@@ -50,6 +50,26 @@ def filter_small_components(binary_edge_map: np.ndarray, min_area: int = 20) -> 
     return filtered
 
 
+def crop_bbox_pad(
+    binary_img: np.ndarray,
+    target_size: int = 256,
+    pad_ratio: float = 0.10,
+    pad_color: int = 0,
+) -> np.ndarray:
+    """Finds bounding box of non-zero pixels, expands with pad_ratio, and resizes to target_size square."""
+    pts = cv2.findNonZero(binary_img)
+    if pts is not None:
+        x, y, w, h = cv2.boundingRect(pts)
+        pad = int(pad_ratio * max(w, h))
+        x0, y0 = max(0, x - pad), max(0, y - pad)
+        x1, y1 = min(binary_img.shape[1], x + w + pad), min(binary_img.shape[0], y + h + pad)
+        cropped = binary_img[y0:y1, x0:x1]
+    else:
+        cropped = binary_img
+
+    return resize_pad(cropped, target_size=target_size, pad_color=pad_color)
+
+
 def preprocess_photo(
     image: np.ndarray,
     target_size: int = 256,
@@ -58,9 +78,10 @@ def preprocess_photo(
     sigma_space: float = 75.0,
     auto_canny_sigma: float = 0.33,
     min_comp_area: int = 20,
+    bbox_pad_ratio: float = 0.10,
 ) -> np.ndarray:
     """Full pipeline for photo preprocessing:
-    Resize/Pad -> Gray -> Bilateral -> Auto-Canny -> ConnectedComponents Filter -> Dilate.
+    Resize/Pad -> Gray -> Bilateral -> Auto-Canny -> ConnectedComponents Filter -> Crop BBox (10% pad) -> 3x3 Dilate.
     """
     if len(image.shape) == 3:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -73,18 +94,24 @@ def preprocess_photo(
     edges = auto_canny(filtered, sigma=auto_canny_sigma)
     clean_edges = filter_small_components(edges, min_area=min_comp_area)
     
+    # Crop bounding box of edges + 10% padding to standardize object scale
+    standardized_edges = crop_bbox_pad(
+        clean_edges, target_size=target_size, pad_ratio=bbox_pad_ratio, pad_color=0
+    )
+    
     # 3x3 dilation for spatial tolerance
     kernel = np.ones((3, 3), np.uint8)
-    dilated_edges = cv2.dilate(clean_edges, kernel, iterations=1)
+    dilated_edges = cv2.dilate(standardized_edges, kernel, iterations=1)
     return dilated_edges
 
 
 def preprocess_sketch(
     sketch: np.ndarray,
     target_size: int = 256,
+    bbox_pad_ratio: float = 0.10,
 ) -> np.ndarray:
     """Full pipeline for digital sketch:
-    Binarization -> Bounding Box Crop & Pad -> Skeletonize -> 3x3 Dilation.
+    Binarization (Otsu) -> Bounding Box Crop (10% pad) -> Zhang-Suen Skeletonize -> 3x3 Dilation.
     """
     if len(sketch.shape) == 3:
         gray = cv2.cvtColor(sketch, cv2.COLOR_BGR2GRAY)
@@ -94,27 +121,19 @@ def preprocess_sketch(
     # Otsu thresholding (strokes = 255, background = 0)
     _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     
-    # Find bounding box of strokes
-    pts = cv2.findNonZero(binary)
-    if pts is not None:
-        x, y, w, h = cv2.boundingRect(pts)
-        pad = int(0.10 * max(w, h))
-        x0, y0 = max(0, x - pad), max(0, y - pad)
-        x1, y1 = min(binary.shape[1], x + w + pad), min(binary.shape[0], y + h + pad)
-        cropped = binary[y0:y1, x0:x1]
-    else:
-        cropped = binary
-
-    resized = resize_pad(cropped, target_size=target_size, pad_color=0)
+    # Bounding Box Crop & Pad
+    cropped_padded = crop_bbox_pad(
+        binary, target_size=target_size, pad_ratio=bbox_pad_ratio, pad_color=0
+    )
     
     # Thinning / Skeletonization
     try:
         from skimage.morphology import skeletonize
-        skeleton = (skeletonize(resized > 0) * 255).astype(np.uint8)
+        skeleton = (skeletonize(cropped_padded > 0) * 255).astype(np.uint8)
     except ImportError:
-        skeleton = resized
+        skeleton = cropped_padded
 
-    # 3x3 dilation
+    # 3x3 dilation for uniform stroke thickness (~3px)
     kernel = np.ones((3, 3), np.uint8)
     dilated = cv2.dilate(skeleton, kernel, iterations=1)
     return dilated

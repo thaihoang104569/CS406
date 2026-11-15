@@ -79,3 +79,8 @@ kaggle/working/
 # the class-level split files (sketchy_class_splits.csv, flickr15k_classes.csv) are committed.
 data/splits/sketchy_zero_shot_splits.csv
 data/splits/flickr15k_splits.csv
+
+# Testing & Cache
+.pytest_cache/
+data/cache_256/
+
