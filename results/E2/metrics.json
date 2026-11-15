@@ -1,0 +1,521 @@
+{
+  "experiment": "E2_frozen_clip",
+  "git_commit": "3bb90ba",
+  "config": {
+    "sketchy_csv": "/kaggle/working/data_prep/splits/sketchy_zero_shot_splits.csv",
+    "sketchy_root": "/kaggle/input/datasets/hongonthi/sketchyextended/sketchy",
+    "splits": [
+      "test",
+      "val"
+    ],
+    "flickr_csv": "/kaggle/working/data_prep/splits/flickr15k_splits.csv",
+    "flickr_root": "/kaggle/input/datasets/hongonthi/flickr15k/Flickr15K",
+    "out_dir": "/kaggle/working/results/E2",
+    "feat_dir": "/kaggle/working/features/E2",
+    "model": "ViT-B-32",
+    "pretrained": "openai",
+    "template": "a photo of a {}",
+    "batch_size": 256,
+    "workers": 4,
+    "sketch_dilate": 0,
+    "top_k": 200,
+    "faiss_gpu": true,
+    "debug": 0,
+    "mock": false
+  },
+  "results": {
+    "sketchy_test": {
+      "n_sketches": 12694,
+      "n_photos": 10453,
+      "n_classes": 21,
+      "visual": {
+        "mAP": 0.247,
+        "mAP@200": 0.1725,
+        "mAP@200_topk_hit": 0.2996,
+        "P@10": 0.2725,
+        "P@100": 0.2718,
+        "P@200": 0.2906
+      },
+      "text_variant": {
+        "mAP": 0.6894,
+        "mAP@200": 0.6789,
+        "mAP@200_topk_hit": 0.7138,
+        "P@10": 0.7177,
+        "P@100": 0.7081,
+        "P@200": 0.6897,
+        "sketch_top1_accuracy": 0.7268
+      },
+      "per_class_visual": {
+        "bat": {
+          "n_queries": 635,
+          "mAP": 0.1409,
+          "mAP@200": 0.075,
+          "P@10": 0.1307
+        },
+        "cabin": {
+          "n_queries": 546,
+          "mAP": 0.1244,
+          "mAP@200": 0.0132,
+          "P@10": 0.0399
+        },
+        "cow": {
+          "n_queries": 728,
+          "mAP": 0.1681,
+          "mAP@200": 0.1326,
+          "P@10": 0.3115
+        },
+        "dolphin": {
+          "n_queries": 590,
+          "mAP": 0.2779,
+          "mAP@200": 0.2105,
+          "P@10": 0.4393
+        },
+        "door": {
+          "n_queries": 578,
+          "mAP": 0.1609,
+          "mAP@200": 0.0145,
+          "P@10": 0.0301
+        },
+        "giraffe": {
+          "n_queries": 673,
+          "mAP": 0.549,
+          "mAP@200": 0.5115,
+          "P@10": 0.6643
+        },
+        "helicopter": {
+          "n_queries": 746,
+          "mAP": 0.1974,
+          "mAP@200": 0.1151,
+          "P@10": 0.159
+        },
+        "mouse": {
+          "n_queries": 670,
+          "mAP": 0.1462,
+          "mAP@200": 0.0779,
+          "P@10": 0.1543
+        },
+        "pear": {
+          "n_queries": 575,
+          "mAP": 0.2444,
+          "mAP@200": 0.1781,
+          "P@10": 0.377
+        },
+        "raccoon": {
+          "n_queries": 735,
+          "mAP": 0.3055,
+          "mAP@200": 0.143,
+          "P@10": 0.0766
+        },
+        "rhinoceros": {
+          "n_queries": 556,
+          "mAP": 0.461,
+          "mAP@200": 0.3984,
+          "P@10": 0.5248
+        },
+        "saw": {
+          "n_queries": 532,
+          "mAP": 0.0517,
+          "mAP@200": 0.0005,
+          "P@10": 0.0038
+        },
+        "scissors": {
+          "n_queries": 558,
+          "mAP": 0.762,
+          "mAP@200": 0.8412,
+          "P@10": 0.9971
+        },
+        "seagull": {
+          "n_queries": 666,
+          "mAP": 0.1971,
+          "mAP@200": 0.136,
+          "P@10": 0.2812
+        },
+        "skyscraper": {
+          "n_queries": 545,
+          "mAP": 0.0849,
+          "mAP@200": 0.0383,
+          "P@10": 0.0668
+        },
+        "songbird": {
+          "n_queries": 529,
+          "mAP": 0.1643,
+          "mAP@200": 0.0251,
+          "P@10": 0.025
+        },
+        "sword": {
+          "n_queries": 605,
+          "mAP": 0.2565,
+          "mAP@200": 0.1384,
+          "P@10": 0.2898
+        },
+        "tree": {
+          "n_queries": 533,
+          "mAP": 0.3071,
+          "mAP@200": 0.2101,
+          "P@10": 0.351
+        },
+        "wheelchair": {
+          "n_queries": 542,
+          "mAP": 0.2055,
+          "mAP@200": 0.151,
+          "P@10": 0.307
+        },
+        "windmill": {
+          "n_queries": 598,
+          "mAP": 0.1177,
+          "mAP@200": 0.0918,
+          "P@10": 0.2306
+        },
+        "window": {
+          "n_queries": 554,
+          "mAP": 0.2607,
+          "mAP@200": 0.1221,
+          "P@10": 0.2794
+        }
+      },
+      "timing": {
+        "encode_ms_per_sketch": 13.187,
+        "encode_ms_per_photo": 14.764,
+        "query_ms_per_sketch": 0.0122,
+        "index_backend": "faiss-gpu",
+        "index_mb_float16": 10.21
+      },
+      "prompts_example": [
+        "a photo of a bat",
+        "a photo of a cabin",
+        "a photo of a cow"
+      ]
+    },
+    "sketchy_val": {
+      "n_sketches": 6181,
+      "n_photos": 6000,
+      "n_classes": 10,
+      "visual": {
+        "mAP": 0.4089,
+        "mAP@200": 0.4352,
+        "mAP@200_topk_hit": 0.6095,
+        "P@10": 0.6517,
+        "P@100": 0.5835,
+        "P@200": 0.5401
+      },
+      "text_variant": {
+        "mAP": 0.8043,
+        "mAP@200": 0.8159,
+        "mAP@200_topk_hit": 0.8268,
+        "P@10": 0.8309,
+        "P@100": 0.8262,
+        "P@200": 0.8212,
+        "sketch_top1_accuracy": 0.8309
+      },
+      "per_class_visual": {
+        "ape": {
+          "n_queries": 617,
+          "mAP": 0.1643,
+          "mAP@200": 0.0781,
+          "P@10": 0.2872
+        },
+        "bicycle": {
+          "n_queries": 614,
+          "mAP": 0.5671,
+          "mAP@200": 0.7552,
+          "P@10": 0.9186
+        },
+        "blimp": {
+          "n_queries": 667,
+          "mAP": 0.1467,
+          "mAP@200": 0.1045,
+          "P@10": 0.5957
+        },
+        "camel": {
+          "n_queries": 690,
+          "mAP": 0.4254,
+          "mAP@200": 0.453,
+          "P@10": 0.5664
+        },
+        "crocodilian": {
+          "n_queries": 597,
+          "mAP": 0.4396,
+          "mAP@200": 0.3874,
+          "P@10": 0.4824
+        },
+        "dog": {
+          "n_queries": 692,
+          "mAP": 0.3261,
+          "mAP@200": 0.2585,
+          "P@10": 0.4801
+        },
+        "fan": {
+          "n_queries": 529,
+          "mAP": 0.5867,
+          "mAP@200": 0.624,
+          "P@10": 0.8371
+        },
+        "sheep": {
+          "n_queries": 669,
+          "mAP": 0.3944,
+          "mAP@200": 0.4412,
+          "P@10": 0.6704
+        },
+        "spoon": {
+          "n_queries": 535,
+          "mAP": 0.4165,
+          "mAP@200": 0.5311,
+          "P@10": 0.8325
+        },
+        "teddy_bear": {
+          "n_queries": 571,
+          "mAP": 0.7032,
+          "mAP@200": 0.8341,
+          "P@10": 0.9492
+        }
+      },
+      "timing": {
+        "encode_ms_per_sketch": 12.15,
+        "encode_ms_per_photo": 14.814,
+        "query_ms_per_sketch": 0.0086,
+        "index_backend": "faiss-gpu",
+        "index_mb_float16": 5.86
+      },
+      "prompts_example": [
+        "a photo of a ape",
+        "a photo of a bicycle",
+        "a photo of a blimp"
+      ]
+    },
+    "flickr15k_test": {
+      "n_sketches": 330,
+      "n_photos": 14660,
+      "n_classes": 33,
+      "visual": {
+        "mAP": 0.238,
+        "mAP@200": 0.2178,
+        "mAP@200_topk_hit": 0.3077,
+        "P@10": 0.3227,
+        "P@100": 0.2411,
+        "P@200": 0.2018
+      },
+      "text_variant": {
+        "mAP": 0.4143,
+        "mAP@200": 0.388,
+        "mAP@200_topk_hit": 0.4134,
+        "P@10": 0.4088,
+        "P@100": 0.3496,
+        "P@200": 0.2985,
+        "sketch_top1_accuracy": 0.4121
+      },
+      "per_class_visual": {
+        "Arc_de_Triomphe": {
+          "n_queries": 10,
+          "mAP": 0.065,
+          "mAP@200": 0.0004,
+          "P@10": 0.0
+        },
+        "Burj_Al_Arab": {
+          "n_queries": 10,
+          "mAP": 0.0554,
+          "mAP@200": 0.0548,
+          "P@10": 0.09
+        },
+        "Colosseum": {
+          "n_queries": 10,
+          "mAP": 0.0464,
+          "mAP@200": 0.0005,
+          "P@10": 0.02
+        },
+        "El_Castillo_mexico": {
+          "n_queries": 10,
+          "mAP": 0.2242,
+          "mAP@200": 0.3607,
+          "P@10": 0.86
+        },
+        "London_eye": {
+          "n_queries": 10,
+          "mAP": 0.2792,
+          "mAP@200": 0.5708,
+          "P@10": 0.9
+        },
+        "Oxford_bridge": {
+          "n_queries": 10,
+          "mAP": 0.0069,
+          "mAP@200": 0.0,
+          "P@10": 0.0
+        },
+        "Pantheon": {
+          "n_queries": 10,
+          "mAP": 0.1267,
+          "mAP@200": 0.0847,
+          "P@10": 0.12
+        },
+        "Pisa_tower": {
+          "n_queries": 10,
+          "mAP": 0.2151,
+          "mAP@200": 0.0844,
+          "P@10": 0.22
+        },
+        "Rome_antica": {
+          "n_queries": 10,
+          "mAP": 0.057,
+          "mAP@200": 0.0334,
+          "P@10": 0.11
+        },
+        "Shanghai_TV_tower": {
+          "n_queries": 10,
+          "mAP": 0.0098,
+          "mAP@200": 0.0,
+          "P@10": 0.0
+        },
+        "Sydney_Opera": {
+          "n_queries": 10,
+          "mAP": 0.0251,
+          "mAP@200": 0.0024,
+          "P@10": 0.08
+        },
+        "Sydney_bridge": {
+          "n_queries": 10,
+          "mAP": 0.0135,
+          "mAP@200": 0.0,
+          "P@10": 0.0
+        },
+        "Taj_Mahal": {
+          "n_queries": 10,
+          "mAP": 0.2167,
+          "mAP@200": 0.1723,
+          "P@10": 0.21
+        },
+        "Temple_of_Heaven_beijing": {
+          "n_queries": 10,
+          "mAP": 0.0407,
+          "mAP@200": 0.0088,
+          "P@10": 0.06
+        },
+        "To-ji_temple": {
+          "n_queries": 10,
+          "mAP": 0.0615,
+          "mAP@200": 0.0556,
+          "P@10": 0.06
+        },
+        "Wild_Goose_Pagoda": {
+          "n_queries": 10,
+          "mAP": 0.0633,
+          "mAP@200": 0.0297,
+          "P@10": 0.27
+        },
+        "airplane": {
+          "n_queries": 10,
+          "mAP": 0.1402,
+          "mAP@200": 0.0869,
+          "P@10": 0.24
+        },
+        "bicycle": {
+          "n_queries": 10,
+          "mAP": 0.917,
+          "mAP@200": 0.9001,
+          "P@10": 0.97
+        },
+        "big_ben": {
+          "n_queries": 10,
+          "mAP": 0.1304,
+          "mAP@200": 0.0013,
+          "P@10": 0.01
+        },
+        "bird": {
+          "n_queries": 10,
+          "mAP": 0.2091,
+          "mAP@200": 0.1746,
+          "P@10": 0.39
+        },
+        "butterfly": {
+          "n_queries": 10,
+          "mAP": 0.2575,
+          "mAP@200": 0.2186,
+          "P@10": 0.48
+        },
+        "duck_swan": {
+          "n_queries": 10,
+          "mAP": 0.8014,
+          "mAP@200": 0.7483,
+          "P@10": 0.69
+        },
+        "eiffel_tower": {
+          "n_queries": 10,
+          "mAP": 0.8238,
+          "mAP@200": 0.7785,
+          "P@10": 0.73
+        },
+        "heart_shape": {
+          "n_queries": 10,
+          "mAP": 0.6935,
+          "mAP@200": 0.6746,
+          "P@10": 1.0
+        },
+        "horse": {
+          "n_queries": 10,
+          "mAP": 0.534,
+          "mAP@200": 0.5291,
+          "P@10": 0.71
+        },
+        "koeln_dom": {
+          "n_queries": 10,
+          "mAP": 0.004,
+          "mAP@200": 0.0,
+          "P@10": 0.0
+        },
+        "notre_dame_paris": {
+          "n_queries": 10,
+          "mAP": 0.0346,
+          "mAP@200": 0.0,
+          "P@10": 0.0
+        },
+        "rock_mountain": {
+          "n_queries": 10,
+          "mAP": 0.0024,
+          "mAP@200": 0.0007,
+          "P@10": 0.0
+        },
+        "starfish": {
+          "n_queries": 10,
+          "mAP": 0.7024,
+          "mAP@200": 0.658,
+          "P@10": 1.0
+        },
+        "sunflower": {
+          "n_queries": 10,
+          "mAP": 0.8827,
+          "mAP@200": 0.8905,
+          "P@10": 0.98
+        },
+        "sunset_sunrise": {
+          "n_queries": 10,
+          "mAP": 0.1295,
+          "mAP@200": 0.0379,
+          "P@10": 0.32
+        },
+        "tower_bridge": {
+          "n_queries": 10,
+          "mAP": 0.0452,
+          "mAP@200": 0.0,
+          "P@10": 0.0
+        },
+        "tree": {
+          "n_queries": 10,
+          "mAP": 0.0411,
+          "mAP@200": 0.0294,
+          "P@10": 0.13
+        }
+      },
+      "timing": {
+        "encode_ms_per_sketch": 22.172,
+        "encode_ms_per_photo": 23.615,
+        "query_ms_per_sketch": 0.0093,
+        "index_backend": "faiss-gpu",
+        "index_mb_float16": 14.32
+      },
+      "prompts_example": [
+        "a photo of a Arc de Triomphe",
+        "a photo of a Burj Al Arab",
+        "a photo of a Colosseum"
+      ]
+    }
+  },
+  "runtime_sec": 874.2
+}

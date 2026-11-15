@@ -1,11 +1,16 @@
 """Sanity check for PromptedCLIP using dummy tensors (no dataset needed).
 
 Checks:
-  1. With M = 0 prompts the re-implemented forward == clip_model.encode_image.
-  2. Output shapes / L2 norm, and only the prompts are trainable.
+  1. With M = 0 prompts the re-implemented forward == clip_model.encode_image
+     (shared frozen encoder and per-branch LayerNorm copies).
+  2. Output shapes / L2 norm, and only prompts (+ LayerNorms) are trainable.
   3. A few optimisation steps of L = L_tri + lambda * L_cls on a tiny dummy set:
-     loss goes down, backbone weights stay unchanged, prompts change.
-  4. Prompt-only checkpoint save / load round trip.
+     loss goes down, frozen CLIP weights stay unchanged, prompts change.
+  4. Checkpoint (prompts + LayerNorms) save / load round trip.
+
+Default = paper configuration (shallow prompts in layer 1, M=3, per-branch LayerNorm
+tuning). --deep / --no_tune_ln give the B-Deep / B-IP ablations. The dummy run uses
+lr 1e-3 only so the loss visibly drops in a few steps (the paper trains with 1e-5).
   5. Peak VRAM + time per step (GPU) to size batch_size before real training.
 
 Usage (Kaggle, GPU, real CLIP weights):
@@ -44,7 +49,8 @@ def main():
     ap.add_argument("--model", default="ViT-B-32")
     ap.add_argument("--pretrained", default="none", help="'openai' on Kaggle, 'none' = random weights")
     ap.add_argument("--num_prompts", type=int, default=3)
-    ap.add_argument("--shallow", action="store_true", help="prompts only at the first layer")
+    ap.add_argument("--deep", action="store_true", help="prompts at every layer (B-Deep ablation)")
+    ap.add_argument("--no_tune_ln", action="store_true", help="freeze LayerNorms too (B-IP ablation)")
     ap.add_argument("--num_classes", type=int, default=4)
     ap.add_argument("--batch_size", type=int, default=8)
     ap.add_argument("--steps", type=int, default=15)
@@ -58,32 +64,37 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     pretrained = None if args.pretrained.lower() == "none" else args.pretrained
     use_amp = args.amp and device == "cuda"
+    tune_ln = not args.no_tune_ln
     print(f"device={device}  pretrained={pretrained}  M={args.num_prompts}  "
-          f"deep={not args.shallow}  amp={use_amp}")
+          f"deep={args.deep}  tune_layernorm={tune_ln}  amp={use_amp}")
 
     model, _, _ = build_prompted_clip(args.model, pretrained, args.num_prompts,
-                                      deep=not args.shallow, device=device)
+                                      deep=args.deep, tune_layernorm=tune_ln, device=device)
     clip_model = model.clip_model
     img = clip_model.visual.image_size
     img_size = img[0] if isinstance(img, (tuple, list)) else img
 
     # ---- 1. equivalence with M = 0 -------------------------------------
     from sbir.deep.prompt_clip import PromptedCLIP
-    zero = PromptedCLIP(clip_model, num_prompts=0, deep=True).to(device)
     x = torch.randn(2, 3, img_size, img_size, device=device)
     with torch.no_grad():
         ref = torch.nn.functional.normalize(clip_model.encode_image(x), dim=-1)
-        ours = zero.encode_photo(x)
-    diff = (ref - ours).abs().max().item()
-    print(f"[1] M=0 vs encode_image max|diff| = {diff:.2e}")
-    assert diff < 1e-4, "re-implemented forward does not match CLIP"
+    for ln in (False, True):
+        zero = PromptedCLIP(clip_model, num_prompts=0, deep=False, tune_layernorm=ln).to(device)
+        with torch.no_grad():
+            diff = (ref - zero.encode_photo(x)).abs().max().item()
+        print(f"[1] M=0, tune_layernorm={ln}: max|diff| vs encode_image = {diff:.2e}")
+        assert diff < 1e-4, "re-implemented forward does not match CLIP"
+        del zero
 
     # ---- 2. shapes + trainable params ----------------------------------
     with torch.no_grad():
         fs, fp = model(x, x)
     assert fs.shape == (2, 512) and fp.shape == (2, 512), fs.shape
     assert torch.allclose(fs.norm(dim=-1), torch.ones(2, device=device), atol=1e-4)
-    expected = 2 * model.num_prompt_layers * args.num_prompts * model.width
+    n_ln = sum(p.numel() for m in clip_model.visual.modules() if isinstance(m, torch.nn.LayerNorm)
+               for p in m.parameters())
+    expected = 2 * model.num_prompt_layers * args.num_prompts * model.width + (2 * n_ln if tune_ln else 0)
     assert model.num_trainable() == expected, (model.num_trainable(), expected)
     total = sum(p.numel() for p in model.parameters())
     print(f"[2] out={tuple(fs.shape)}  trainable={model.num_trainable():,} / {total:,} "
@@ -102,6 +113,7 @@ def main():
 
     backbone_before = sum(p.double().sum().item() for p in clip_model.parameters())
     prompts_before = model.sketch_prompts.detach().clone()
+    ln_before = model.visual_sketch.ln_post.weight.detach().clone() if tune_ln else None
     if device == "cuda":
         torch.cuda.reset_peak_memory_stats()
 
@@ -139,6 +151,8 @@ def main():
     backbone_after = sum(p.double().sum().item() for p in clip_model.parameters())
     assert backbone_after == backbone_before, "backbone weights changed"
     assert not torch.equal(prompts_before, model.sketch_prompts.detach()), "prompts did not update"
+    if tune_ln:
+        assert not torch.equal(ln_before, model.visual_sketch.ln_post.weight.detach()), "LayerNorm did not update"
     first, last = sum(losses[:3]) / 3, sum(losses[-3:]) / 3
     print(f"[3] loss {first:.4f} -> {last:.4f}  ({dt:.2f} s/step, batch={args.batch_size})")
     assert last < first, "loss did not decrease on the dummy set"
@@ -148,7 +162,8 @@ def main():
     torch.save(model.prompt_state_dict(), buf)
     size_kb = buf.tell() / 1024
     buf.seek(0)
-    fresh = PromptedCLIP(clip_model, num_prompts=args.num_prompts, deep=not args.shallow).to(device)
+    fresh = PromptedCLIP(clip_model, num_prompts=args.num_prompts, deep=args.deep,
+                         tune_layernorm=tune_ln).to(device)
     fresh.load_prompt_state_dict(torch.load(buf))
     model.eval()
     with torch.no_grad():

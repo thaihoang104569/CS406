@@ -1,40 +1,45 @@
-# Configuration for Deep Learning Experiments (E2 Frozen CLIP, E3 Triplet only, E4 Full Prompt Learning)
+# Deep-learning experiments: E2 frozen CLIP, E3 (triplet only), E4 (full), ablations.
+# Defaults reproduce Sain et al., CVPR 2023 (arXiv 2303.13440), sec. 4 and sec. 6
+# "Implementation Details" for category-level ZS-SBIR.
 experiment: "E4_CLIP_PromptLearning"
 seed: 42
 
 backbone:
-  name: "ViT-B/32"
+  name: "ViT-B-32"          # open_clip name of CLIP ViT-B/32
   pretrained: "openai"
-  freeze_backbone: true
+  tune_layernorm: true      # paper: CLIP frozen EXCEPT LayerNorms, separate per sketch/photo branch
 
 model:
-  prompt_tokens_per_layer: 3 # M in {1, 3, 5}
+  prompt_tokens: 3          # paper: each prompt is (3 x 768)
   prompt_dim: 768
-  deep_prompting: true
+  deep_prompting: false     # paper: prompts injected in the FIRST transformer layer only
   embedding_dim: 512
 
 dataset:
   name: "sketchy"
-  data_dir: "data/raw/sketchy"
-  split_file: "data/splits/sketchy_zero_shot_splits.csv"
+  split_file: "data/splits/sketchy_zero_shot_splits.csv"   # 94 train / 10 val / 21 test classes
+  class_split_file: "data/splits/sketchy_class_splits.csv"
   img_size: [224, 224]
 
 training:
-  batch_size: 64
+  optimizer: "adam"
+  lr: 0.00001               # paper: Adam, lr 1e-5
+  epochs: 60                # paper: 60 epochs
+  batch_size: 64            # paper: 64
   num_workers: 4
-  lr: 0.0003
-  min_lr: 0.00001
-  weight_decay: 0.01
-  epochs: 40
-  warmup_epochs: 3
-  amp: true  # Automatic Mixed Precision (FP16)
-  
+  amp: true                 # mixed precision (T4)
+
 loss:
-  triplet_margin: 0.3
-  classification_temperature: 0.01
-  lambda_cls: 1.0  # 0.0 for E3, > 0 for E4 (e.g. 0.5, 1.0, 2.0)
+  triplet_margin: 0.3       # paper: mu = 0.3
+  lambda_cls: 0.5           # paper: lambda_1 = 0.5;  E3 = 0.0
+  classification_temperature: 0.01   # not stated in the paper; 0.01 = CLIP's logit scale 100
+  text_template: "a photo of a {}"
+
+ablations:                  # paper Table 1 baselines, run only if GPU time allows
+  B-Deep: {deep_prompting: true}
+  B-IP:   {tune_layernorm: false}
 
 evaluation:
-  eval_frequency: 1 # evaluate on validation set every epoch
+  eval_frequency: 1         # mAP@200 on the 10 val classes every epoch (early stopping / best epoch)
   top_k: 200
-  metrics: ["mAP@200", "P@10", "P@100", "P@200"]
+  metrics: ["mAP", "mAP@200", "P@10", "P@100", "P@200"]
