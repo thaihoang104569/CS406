@@ -43,6 +43,15 @@ class FrozenCLIPExtractor:
         return feat.cpu()
 
     @torch.no_grad()
+    def encode_image_batch(self, batch: torch.Tensor, amp: bool = True) -> torch.Tensor:
+        """Encode an already-preprocessed batch (B, 3, 224, 224) -> (B, 512) normalised, float32 on CPU."""
+        batch = batch.to(self.device, non_blocking=True)
+        with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=amp and self.device.startswith("cuda")):
+            feat = self.model.encode_image(batch)
+        feat = feat.float()
+        return (feat / feat.norm(dim=-1, keepdim=True)).cpu()
+
+    @torch.no_grad()
     def encode_text(self, text_list: List[str]) -> torch.Tensor:
         """Encode category prompt texts (e.g. 'a photo of a [class]')."""
         if self.model is None:

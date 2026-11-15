@@ -71,7 +71,35 @@ def log(msg):
 
 
 # ----------------------------------------------------------------------------- Sketchy
-def build_sketchy(root, n_val, seed):
+def find_duplicate_files(df, root, workers):
+    """MD5 every file; report byte-identical images that sit in different splits."""
+    import hashlib
+
+    def md5(rel):
+        h = hashlib.md5()
+        with open(os.path.join(root, rel), "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                h.update(chunk)
+        return h.hexdigest()
+
+    with ThreadPoolExecutor(workers) as ex:
+        hashes = list(ex.map(md5, df.filepath))
+    d = df.assign(md5=hashes)
+    groups = d[d.duplicated("md5", keep=False)].groupby("md5")
+    cross = [g for _, g in groups if g.split.nunique() > 1]
+    test_dups = sum(int((g.split == "test").sum()) for g in cross)
+    return {
+        "files_hashed": int(len(d)),
+        "duplicate_groups": int(groups.ngroups),
+        "duplicate_files": int(d.md5.duplicated(keep=False).sum()),
+        "cross_split_groups": len(cross),
+        "test_files_also_in_train_or_val": test_dups,
+        "cross_split_examples": [g[["filepath", "split", "category"]].to_dict("records") for g in cross[:20]],
+    }
+
+
+def build_sketchy(root, n_val, seed, fixed_split=None):
+    """fixed_split: optional {category: split} (the committed class split) used instead of the seed."""
     rel = scan(root)
     parts = rel.str.split("/")
     df = pd.DataFrame({"filepath": rel, "folder": parts.str[0], "item_type": parts.str[1],
@@ -93,7 +121,13 @@ def build_sketchy(root, n_val, seed):
     unseen = sorted(df.loc[df.folder == "val", "category"].unique())
     if set(seen) & set(unseen):
         raise ValueError("Sketchy train/ and val/ folders share classes: not a zero-shot split.")
-    val_classes = sorted(random.Random(seed).sample(seen, n_val))
+    if fixed_split:
+        missing = set(seen + unseen) ^ set(fixed_split)
+        if missing or any(fixed_split[c] != "test" for c in unseen) or any(fixed_split[c] == "test" for c in seen):
+            raise ValueError(f"--class_split_csv does not match the dataset folders (mismatch: {sorted(missing)[:5]})")
+        val_classes = sorted(c for c in seen if fixed_split[c] == "val")
+    else:
+        val_classes = sorted(random.Random(seed).sample(seen, n_val))
     cls = pd.DataFrame({"category": seen + unseen,
                         "source_folder": ["train"] * len(seen) + ["val"] * len(unseen)})
     cls["split"] = np.select([cls.source_folder == "val", cls.category.isin(val_classes)], ["test", "val"], "train")
@@ -326,6 +360,11 @@ def main():
     ap.add_argument("--sample_per_group", type=int, default=500, help="images read per split/type for pixel stats")
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--no_figures", action="store_true")
+    ap.add_argument("--class_split_csv", default=None,
+                    help="committed data/splits/sketchy_class_splits.csv: reuse its train/val/test classes "
+                         "instead of re-drawing the val classes from --seed")
+    ap.add_argument("--skip_dup_check", action="store_true",
+                    help="skip the MD5 check for identical image files across splits (~2-5 min on Kaggle)")
     args = ap.parse_args()
 
     t0 = time.time()
@@ -335,7 +374,11 @@ def main():
     report = {"args": vars(args)}
 
     log("[1/5] Sketchy: scan + zero-shot split")
-    sk, sk_cls, sk_stats = build_sketchy(args.sketchy_root, args.n_val, args.seed)
+    fixed = None
+    if args.class_split_csv:
+        fixed = dict(pd.read_csv(args.class_split_csv)[["category", "split"]].itertuples(index=False))
+        log(f"      using fixed class split from {args.class_split_csv}")
+    sk, sk_cls, sk_stats = build_sketchy(args.sketchy_root, args.n_val, args.seed, fixed)
     sk.to_csv(split_dir / "sketchy_zero_shot_splits.csv", index=False)
     sk_cls.to_csv(split_dir / "sketchy_class_splits.csv", index=False)
     report["sketchy"] = sk_stats
@@ -365,6 +408,15 @@ def main():
     }
     if not ok or tv or sk_stats["sketch_photo_pairs_across_splits"]:
         raise SystemExit("LEAKAGE DETECTED - see output above")
+    if not args.skip_dup_check:
+        log("      MD5: identical image files in different splits")
+        dup = find_duplicate_files(sk, args.sketchy_root, args.workers)
+        report["checks"]["duplicate_files"] = dup
+        log(f"      {dup['files_hashed']} files, {dup['duplicate_groups']} duplicate groups, "
+            f"{dup['cross_split_groups']} across splits ({dup['test_files_also_in_train_or_val']} test files)")
+        if dup["cross_split_groups"]:
+            log("      WARNING: identical images across splits (not a class leak, but the model may have "
+                "trained on a test image under another label) - listed in report.json")
 
     log(f"[4/5] Image statistics ({args.sample_per_group} files per split/type)")
     parts = [sample_image_stats(sk, args.sketchy_root, args.sample_per_group, args.seed, args.workers).assign(dataset="sketchy")]

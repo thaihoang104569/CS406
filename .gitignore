@@ -84,3 +84,6 @@ data/splits/flickr15k_splits.csv
 .pytest_cache/
 data/cache_256/
 
+
+# Extracted features / embeddings (hand-off via Kaggle datasets, not git)
+features/
