@@ -135,6 +135,15 @@ def build_sketchy(root, n_val, seed, fixed_split=None):
 
     # --- checks / statistics
     photos, sketches = df[df.item_type == "photo"], df[df.item_type == "sketch"]
+    if len(sketches) == 0:
+        raise ValueError(
+            f"No sketches found in --sketchy_root '{root}'! Found {len(photos)} photos.\n"
+            "Raw Sketchy must contain both photo/ and sketch/ directories (e.g. train/sketch and val/sketch).\n"
+            "It appears you passed the photo cache directory ('sbir-cache-256-photos') instead of the raw Sketchy dataset."
+        )
+    if len(photos) == 0:
+        raise ValueError(f"No photos found in --sketchy_root '{root}'!")
+
     photo_split = photos.groupby(["category", "photo_id"]).split.first()
     sk_photo_split = pd.Series(list(zip(sketches.category, sketches.photo_id))).map(photo_split)
     spp = sketches.groupby(["category", "photo_id"]).size()
@@ -147,11 +156,19 @@ def build_sketchy(root, n_val, seed, fixed_split=None):
         "test_classes": unseen,
         "original_photos_with_sketches": int(len(spp)),
         "extended_photos": int(len(photos) - photos.set_index(["category", "photo_id"]).index.isin(spp.index).sum()),
-        "sketches_per_photo": {"mean": round(float(spp.mean()), 3), "min": int(spp.min()), "max": int(spp.max())},
+        "sketches_per_photo": {
+            "mean": round(float(spp.mean()), 3) if len(spp) > 0 else 0.0,
+            "min": int(spp.min()) if len(spp) > 0 else 0,
+            "max": int(spp.max()) if len(spp) > 0 else 0,
+        },
         "sketches_without_photo": sketches.loc[sk_photo_split.isna().values, "filepath"].tolist(),
         "sketch_photo_pairs_across_splits": int((sk_photo_split.notna() & (sk_photo_split.values != sketches.split.values)).sum()),
-        "per_class": {"photo_min": int(counts.photo.min()), "photo_max": int(counts.photo.max()),
-                      "sketch_min": int(counts.sketch.min()), "sketch_max": int(counts.sketch.max())},
+        "per_class": {
+            "photo_min": int(counts.photo.min()) if "photo" in counts and len(counts.photo) > 0 else 0,
+            "photo_max": int(counts.photo.max()) if "photo" in counts and len(counts.photo) > 0 else 0,
+            "sketch_min": int(counts.sketch.min()) if "sketch" in counts and len(counts.sketch) > 0 else 0,
+            "sketch_max": int(counts.sketch.max()) if "sketch" in counts and len(counts.sketch) > 0 else 0,
+        },
         "extensions": {f"{t}{e}": int(n) for (t, e), n in
                        df.groupby([df.item_type, df.filepath.str.extract(r"(\.\w+)$")[0].str.lower()]).size().items()},
     }
