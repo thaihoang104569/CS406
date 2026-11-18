@@ -16,12 +16,12 @@ and writes everything to <out_dir>/metrics.json.
 Kaggle (GPU):
     python scripts/run_e2_frozen.py \
         --sketchy_csv /kaggle/working/data_prep/splits/sketchy_zero_shot_splits.csv \
-        --sketchy_root /kaggle/input/<cache>/sbir-cache-256/sketchy \
+        --sketchy_root <raw>/sketchy   --sketchy_photo_root <cache>/sketchy \
         --flickr_csv /kaggle/working/data_prep/splits/flickr15k_splits.csv \
-        --flickr_root /kaggle/input/<cache>/sbir-cache-256/flickr15k \
+        --flickr_root <raw>/Flickr15K  --flickr_photo_root <cache>/flickr15k \
         --out_dir /kaggle/working/results/E2 --feat_dir /kaggle/working/features/E2
-    (--sketchy_root/--flickr_root may also point at the raw datasets; with the 256-px cache
-     a file whose extension changed to .jpg is found automatically.)
+    Sketches are always read from the raw roots; photos from *_photo_root when given (the
+    photo-only 256-px cache, plan section 2.4), otherwise from the raw roots too.
 Local check without torch/CLIP (synthetic embeddings, real CSVs + evaluation + saving):
     python scripts/run_e2_frozen.py --sketchy_csv ... --mock --debug
 """
@@ -160,8 +160,21 @@ def git_commit():
         return None
 
 
-def run_set(name, csv_path, root, split, enc, args, feat_dir):
+def check_paths(name, kind, root, rels):
+    if not root:
+        raise SystemExit(f"[{name}] no root folder given for {kind}s")
+    p = resolve(root, rels.iloc[0])
+    if not os.path.exists(p):
+        raise SystemExit(f"[{name}] {kind} not found: {p}  -> check the {kind} root ({root})")
+
+
+def run_set(name, csv_path, root, photo_root, split, enc, args, feat_dir):
     sk, ph = load_set(csv_path, split, args.debug)
+    photo_root = photo_root or root
+    if not args.mock:
+        check_paths(name, "sketch", root, sk.filepath)
+        check_paths(name, "photo", photo_root, ph.filepath)
+        print(f"[{name}] sketches from {root} | photos from {photo_root}", flush=True)
     print(f"\n[{name}] {len(sk)} sketches x {len(ph)} photos, {sk.category.nunique()} query classes", flush=True)
 
     t0 = time.time()
@@ -174,7 +187,7 @@ def run_set(name, csv_path, root, split, enc, args, feat_dir):
     if args.mock:
         fp = enc.images_from_labels(ph.category.tolist(), False)
     else:
-        fp = enc.images([resolve(root, p) for p in ph.filepath], False)
+        fp = enc.images([resolve(photo_root, p) for p in ph.filepath], False)
     t_ph = time.time() - t0
 
     for kind, feats, rows in (("sketch", fs, sk), ("photo", fp, ph)):
@@ -224,10 +237,12 @@ def run_set(name, csv_path, root, split, enc, args, feat_dir):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--sketchy_csv", required=True)
-    ap.add_argument("--sketchy_root", default="", help="raw Sketchy folder or <cache>/sketchy")
+    ap.add_argument("--sketchy_root", default="", help="raw Sketchy folder (train/, val/); sketches always read here")
+    ap.add_argument("--sketchy_photo_root", default="", help="<cache>/sketchy for photos; empty = use --sketchy_root")
     ap.add_argument("--splits", nargs="+", default=["test", "val"], help="Sketchy splits to evaluate")
     ap.add_argument("--flickr_csv")
-    ap.add_argument("--flickr_root", default="")
+    ap.add_argument("--flickr_root", default="", help="raw Flickr15K folder (images/, sketches/)")
+    ap.add_argument("--flickr_photo_root", default="", help="<cache>/flickr15k for photos; empty = use --flickr_root")
     ap.add_argument("--out_dir", default="results/E2")
     ap.add_argument("--feat_dir", default="features/E2")
     ap.add_argument("--model", default="ViT-B-32")
@@ -248,12 +263,12 @@ def main():
     feat_dir.mkdir(parents=True, exist_ok=True)
     enc = MockEncoder(args) if args.mock else ClipEncoder(args)
 
-    sets = [(f"sketchy_{s}", args.sketchy_csv, args.sketchy_root, s) for s in args.splits]
+    sets = [(f"sketchy_{s}", args.sketchy_csv, args.sketchy_root, args.sketchy_photo_root, s) for s in args.splits]
     if args.flickr_csv:
-        sets.append(("flickr15k_test", args.flickr_csv, args.flickr_root, "test"))
+        sets.append(("flickr15k_test", args.flickr_csv, args.flickr_root, args.flickr_photo_root, "test"))
 
     t0 = time.time()
-    results = {name: run_set(name, csv, root, split, enc, args, feat_dir) for name, csv, root, split in sets}
+    results = {name: run_set(name, csv, root, proot, split, enc, args, feat_dir) for name, csv, root, proot, split in sets}
     metrics = {
         "experiment": "E2_frozen_clip" + ("_MOCK" if args.mock else "") + ("_DEBUG" if args.debug else ""),
         "git_commit": git_commit(),
