@@ -35,9 +35,8 @@ loss:
   classification_temperature: 0.01   # not stated in the paper; 0.01 = CLIP's logit scale 100
   text_template: "a photo of a {}"
 
-ablations:                  # paper Table 1 baselines, run only if GPU time allows
-  B-Deep: {deep_prompting: true}
-  B-IP:   {tune_layernorm: false}
+# Ablation run by the group: E3 = lambda_cls 0 (no L_cls). Deep prompts at all layers
+# (paper "B-Deep": 0.702 < 0.723) are not re-run; train.py still accepts --deep / --no_tune_ln.
 
 evaluation:
   eval_frequency: 1         # mAP@200 on the 10 val classes every epoch (early stopping / best epoch)
