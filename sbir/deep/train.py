@@ -274,6 +274,9 @@ def main():
         sampler = TripletSampler(sk_y, ph.category.map(cidx).to_numpy(), seed=args.seed)
         log(f"train: {len(classes)} classes, {len(sk):,} sketches, {len(ph):,} photos "
             f"({len(sk) // args.batch_size} steps/epoch)")
+        probe = torch.stack([eval_tf(Image.open(p).convert("RGB"))
+                             for p in sk_paths[:4] + ph_paths[:4]]).to(device)
+        log(f"sanity check (forward == CLIP, no collapse): {model.sanity_check(probe)}")
 
         val = None
         if args.val_split != "none":

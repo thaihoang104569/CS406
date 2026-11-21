@@ -40,6 +40,22 @@ def to_open_clip_name(model_name: str) -> str:
     return model_name.replace("/", "-")
 
 
+def detect_batch_first(transformer: nn.Module) -> bool:
+    """Whether open_clip's residual blocks take (N, L, D) tokens.
+
+    open_clip changed this across versions: < 2.24 is seq-first (L, N, D) with no flag;
+    2.24+ stores ``Transformer.batch_first``; recent versions are always batch-first and
+    may drop the flag. A wrong guess makes attention mix *images* instead of tokens, so
+    every CLS output becomes identical (all embeddings collapse to one vector).
+    """
+    if hasattr(transformer, "batch_first"):
+        return bool(transformer.batch_first)
+    attn = getattr(transformer.resblocks[0], "attn", None)
+    if isinstance(attn, nn.MultiheadAttention):
+        return bool(attn.batch_first)
+    return True
+
+
 class PromptedCLIP(nn.Module):
     """open_clip CLIP + learnable visual prompts (+ per-branch LayerNorms) for sketch and photo.
 
@@ -75,8 +91,8 @@ class PromptedCLIP(nn.Module):
         self.width = visual.conv1.out_channels
         self.depth = len(visual.transformer.resblocks)
         self.num_prompt_layers = self.depth if deep else 1
-        # Newer open_clip transformers are batch-first; older ones expect (L, N, D).
-        self._batch_first = getattr(visual.transformer, "batch_first", False)
+        # Token layout expected by the residual blocks: batch-first (N, L, D) or seq-first (L, N, D).
+        self._batch_first = detect_batch_first(visual.transformer)
 
         # Freeze the whole CLIP model (image + text encoders).
         for p in self.clip_model.parameters():
@@ -133,11 +149,15 @@ class PromptedCLIP(nn.Module):
         return block(x.permute(1, 0, 2)).permute(1, 0, 2)
 
     # ---------------------------------------------------------------- forward
-    def encode_image(self, x: torch.Tensor, branch: str, normalize: bool = True) -> torch.Tensor:
-        """Encode a batch of preprocessed images (B, 3, 224, 224) -> (B, 512)."""
+    def encode_image(self, x: torch.Tensor, branch: str, normalize: bool = True,
+                     use_prompts: bool = True) -> torch.Tensor:
+        """Encode a batch of preprocessed images (B, 3, 224, 224) -> (B, 512).
+
+        ``use_prompts=False`` skips the prompt tokens (used by ``sanity_check``).
+        """
         v = self._visual(branch)
         prompts = self._prompts(branch)
-        M = self.num_prompts
+        M = self.num_prompts if use_prompts else 0
 
         x = v.conv1(x)                                   # (B, D, g, g)
         B, D = x.shape[0], x.shape[1]
@@ -149,11 +169,12 @@ class PromptedCLIP(nn.Module):
         x = v.ln_pre(x)
 
         # Layer 0: insert prompts right after CLS (prompts get no positional embedding).
-        p0 = prompts[0].to(x.dtype).expand(B, M, D)
-        x = torch.cat([x[:, :1], p0, x[:, 1:]], dim=1)   # (B, 1+M+g*g, D)
+        if M:
+            p0 = prompts[0].to(x.dtype).expand(B, M, D)
+            x = torch.cat([x[:, :1], p0, x[:, 1:]], dim=1)   # (B, 1+M+g*g, D)
 
         for i, block in enumerate(v.transformer.resblocks):
-            if 0 < i < self.num_prompt_layers:           # deep prompting only
+            if M and 0 < i < self.num_prompt_layers:     # deep prompting only
                 pi = prompts[i].to(x.dtype).expand(B, M, D)
                 x = torch.cat([x[:, :1], pi, x[:, 1 + M:]], dim=1)
             x = self._run_block(block, x)
@@ -162,6 +183,33 @@ class PromptedCLIP(nn.Module):
         if v.proj is not None:
             feat = feat @ v.proj
         return F.normalize(feat, dim=-1) if normalize else feat
+
+    @torch.no_grad()
+    def sanity_check(self, x: torch.Tensor, tol: float = 1e-3) -> dict:
+        """Fail fast if the re-implemented forward is wrong (call before training).
+
+        1) Without prompts and with untouched LayerNorms, both branches must reproduce
+           ``clip_model.encode_image`` (max |diff| of the normalised embeddings < tol).
+        2) With prompts, different images must give different embeddings (no collapse).
+        ``x`` should hold >= 2 different preprocessed images.
+        """
+        was_training = self.training
+        self.eval()
+        x = x.float()
+        ref = F.normalize(self.clip_model.encode_image(x).float(), dim=-1)
+        report = {"batch_first": self._batch_first}
+        for b in BRANCHES:
+            report[f"{b}_vs_clip_maxdiff"] = (self.encode_image(x, b, use_prompts=False).float() - ref).abs().max().item()
+            f = self.encode_image(x, b).float()
+            sim = f @ f.T
+            off = sim[~torch.eye(len(f), dtype=torch.bool, device=f.device)]
+            report[f"{b}_offdiag_cos_max"] = off.max().item()
+        self.train(was_training)
+        bad = [k for k, v in report.items() if k.endswith("maxdiff") and v > tol]
+        bad += [k for k, v in report.items() if k.endswith("cos_max") and v > 0.999]
+        if bad:
+            raise RuntimeError(f"PromptedCLIP sanity check failed {bad}: {report}")
+        return report
 
     def encode_sketch(self, x: torch.Tensor) -> torch.Tensor:
         return self.encode_image(x, "sketch")
